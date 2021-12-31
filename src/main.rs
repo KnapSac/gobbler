@@ -1,40 +1,63 @@
+mod app;
+mod db;
+mod error;
+
+use crate::{app::build_app, db::Database};
 use chrono::{DateTime, Duration, FixedOffset, Utc};
+use error::Result;
 use std::{
     fmt::{self, Debug},
     ops::Sub,
-    sync::mpsc,
 };
-use thiserror::Error;
 use windows::{
     core::HSTRING,
-    Foundation::{AsyncOperationWithProgressCompletedHandler, Uri},
+    Foundation::Uri,
     Web::Syndication::{SyndicationClient, SyndicationFormat, SyndicationItem},
 };
 
-fn main() -> Result<(), Error> {
+fn main() -> Result<()> {
+    let matches = build_app().get_matches();
+
+    let mut db = Database::new()?;
+
+    match matches.subcommand() {
+        ("add", Some(add_matches)) => {
+            let name = add_matches.value_of("name").unwrap();
+            let url = add_matches.value_of("url").unwrap();
+
+            db.add(name.to_string(), url.to_string())?;
+
+            println!(
+                "Added '{}' with url '{}' to your list of subscriptions",
+                name, url,
+            );
+        }
+        _ => {
+            if matches.is_present("list") {
+                let mut blogs = db.subscriptions();
+                if blogs.peek().is_none() {
+                    println!("No subscriptions added yet");
+                } else {
+                    blogs.for_each(|(name, url)| println!("{} - {}", name, url));
+                }
+            }
+        }
+    }
+
+    Ok(())
+
+    /*
     let client = SyndicationClient::new()?;
 
     print_posts_from_last_four_weeks(&client, "https://fasterthanli.me/index.xml")
+    */
 }
 
-fn print_posts_from_last_four_weeks(client: &SyndicationClient, url: &str) -> Result<(), Error> {
+fn print_posts_from_last_four_weeks(client: &SyndicationClient, url: &str) -> Result<()> {
     let uri = Uri::CreateUri(HSTRING::from(url))?;
-
-    // TODO CV: Can this be accomplished without a channel?
-    let (sender, receiver) = mpsc::channel();
-    client.RetrieveFeedAsync(uri)?.SetCompleted(
-        AsyncOperationWithProgressCompletedHandler::new(move |op, _status| {
-            if let Some(op) = op {
-                sender
-                    .send(op.GetResults()?)
-                    .expect("send over mpsc channel");
-            }
-            Ok(())
-        }),
-    )?;
+    let feed = client.RetrieveFeedAsync(uri)?.get()?;
 
     let four_weeks_ago = Utc::now().sub(Duration::weeks(4));
-    let feed = receiver.recv().unwrap();
     for item in feed.Items()? {
         let post = BlogPost::try_from((item, feed.SourceFormat()?)).unwrap();
         if post.timestamp < four_weeks_ago {
@@ -54,9 +77,9 @@ struct BlogPost {
 }
 
 impl TryFrom<(SyndicationItem, SyndicationFormat)> for BlogPost {
-    type Error = Error;
+    type Error = crate::error::Error;
 
-    fn try_from((item, format): (SyndicationItem, SyndicationFormat)) -> Result<Self, Self::Error> {
+    fn try_from((item, format): (SyndicationItem, SyndicationFormat)) -> Result<Self> {
         let xml = item.GetXmlDocument(format)?;
         let updated = xml
             .GetElementsByTagName(HSTRING::from("updated"))?
@@ -84,13 +107,4 @@ impl Debug for BlogPost {
             self.id
         )
     }
-}
-
-#[derive(Error, Debug)]
-enum Error {
-    #[error("Windows error")]
-    WindowsError(#[from] windows::core::Error),
-
-    #[error("Failed to parse updated time stamp")]
-    ParseError(#[from] chrono::ParseError),
 }
