@@ -8,8 +8,10 @@ use error::Result;
 use rayon::prelude::*;
 use std::{
     fmt::{self, Debug},
+    io::Write,
     ops::Sub,
 };
+use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 use windows::{
     core::HSTRING,
     Foundation::Uri,
@@ -20,6 +22,7 @@ fn main() -> Result<()> {
     let matches = build_app().get_matches();
 
     let mut db = Database::new()?;
+    let mut stdout = StandardStream::stdout(termcolor::ColorChoice::Auto);
 
     match matches.subcommand() {
         Some(("add", add_matches)) => {
@@ -28,37 +31,31 @@ fn main() -> Result<()> {
 
             db.add(name.to_string(), url.to_string())?;
 
-            println!(
+            writeln!(
+                &mut stdout,
                 "Added '{}' with url '{}' to your list of subscriptions",
                 name, url,
-            );
+            )?;
         }
         _ => {
             if matches.is_present("list") {
                 let mut blogs = db.blogs.iter().peekable();
                 if blogs.peek().is_none() {
-                    println!("No subscriptions added yet");
+                    writeln!(&mut stdout, "No subscriptions added yet")?;
                     return Ok(());
                 }
 
                 blogs.for_each(|(name, url)| println!("{} - {}", name, url));
             } else {
-                collect_feeds_with_items_since(
+                for item in collect_feeds_with_items_since(
                     &db,
                     &SyndicationClient::new()?,
                     Utc::now().sub(Duration::weeks(4)),
                 )?
                 .iter()
-                .for_each(|(name, posts)| {
-                    println!("{}:", name);
-                    if posts.is_empty() {
-                        println!("    No new posts in the last 4 weeks");
-                        return;
-                    }
-                    for post in posts {
-                        println!("    {:#?}", post);
-                    }
-                });
+                {
+                    write_feed_colored(&mut stdout, item)?;
+                }
             }
         }
     }
@@ -95,6 +92,38 @@ fn collect_feeds_with_items_since(
             Ok((name.clone(), results))
         })
         .collect()
+}
+
+fn write_feed_colored(
+    stdout: &mut StandardStream,
+    (name, posts): &(String, Vec<BlogPost>),
+) -> Result<()> {
+    stdout.set_color(ColorSpec::new().set_bold(true).set_fg(Some(Color::Green)))?;
+    writeln!(stdout, "{}:", name)?;
+    stdout.reset()?;
+
+    if posts.is_empty() {
+        writeln!(stdout, "    No new posts in the last 4 weeks")?;
+        return Ok(());
+    }
+
+    let mut blue = ColorSpec::new();
+    let blue = blue.set_fg(Some(Color::Blue));
+    let mut yellow = ColorSpec::new();
+    let yellow = yellow.set_fg(Some(Color::Yellow));
+    for post in posts {
+        stdout.set_color(blue)?;
+        write!(stdout, "    {}", post.timestamp.format("%c"))?;
+        stdout.reset()?;
+
+        write!(stdout, " - {}", post.title)?;
+
+        stdout.set_color(yellow)?;
+        writeln!(stdout, " ({})", post.id)?;
+        stdout.reset()?;
+    }
+
+    Ok(())
 }
 
 struct BlogPost {

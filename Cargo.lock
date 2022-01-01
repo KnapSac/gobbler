@@ -117,6 +117,7 @@ dependencies = [
  "chrono",
  "clap",
  "rayon",
+ "termcolor",
  "thiserror",
  "windows",
 ]
