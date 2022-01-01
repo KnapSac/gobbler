@@ -46,6 +46,38 @@ impl Database {
             }
         }
     }
+
+    pub(crate) fn remove(&mut self, name_to_remove: &str) -> Result<Option<String>> {
+        match self.blogs.remove(name_to_remove) {
+            Some(url) => {
+                let file = OpenOptions::new().read(true).open(DB_FILE_NAME)?;
+                let reader = BufReader::new(file);
+
+                let lines: Vec<String> = reader
+                    .lines()
+                    .map(|line| line.expect("Unable to read line from file"))
+                    .collect();
+
+                let mut file = OpenOptions::new()
+                    .write(true)
+                    .create(true)
+                    .truncate(true)
+                    .open(DB_FILE_NAME)?;
+
+                for line in lines {
+                    if let Some((name, _)) = line.split_once(',') {
+                        if name != name_to_remove {
+                            file.write_all(line.as_bytes())?;
+                            file.write_all(b"\n")?;
+                        }
+                    }
+                }
+
+                Ok(Some(url))
+            }
+            None => Ok(None),
+        }
+    }
 }
 
 fn append_entry_to_file(name: &str, url: &str) -> Result<()> {

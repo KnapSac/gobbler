@@ -17,11 +17,9 @@ pub fn build_app() -> App<'static> {
         )
         .subcommand(
             App::new("add")
-                .about("Add a RSS feed to subscribe to")
+                .about("Add a RSS feed subscription")
                 .arg(
                     Arg::new("name")
-                        .long("name")
-                        .short('n')
                         .help("The name of the blog")
                         .required(true)
                         .takes_value(true)
@@ -29,12 +27,21 @@ pub fn build_app() -> App<'static> {
                 )
                 .arg(
                     Arg::new("url")
-                        .long("url")
-                        .short('u')
                         .help("The url of the blog's RSS feed")
                         .required(true)
                         .takes_value(true)
                         .value_name("URL"),
+                ),
+        )
+        .subcommand(
+            App::new("remove")
+                .about("Remove a RSS feed subscription")
+                .arg(
+                    Arg::new("name")
+                        .help("The name of the blog")
+                        .required(true)
+                        .takes_value(true)
+                        .value_name("NAME"),
                 ),
         )
 }

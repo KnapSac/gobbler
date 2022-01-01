@@ -50,6 +50,21 @@ fn run() -> Result<()> {
                 name, url,
             )?;
         }
+        Some(("remove", remove_matches)) => {
+            let name = remove_matches.value_of("name").unwrap();
+            match db.remove(name)? {
+                Some(_) => writeln!(
+                    &mut stdout, 
+                    "Succesfully removed '{}' from your list of subscriptions", 
+                    name
+                )?,
+                None => writeln!(
+                    &mut stdout, 
+                    "Failed to remove '{}' from your list of subscriptions as you are not subscribed to that feed", 
+                    name
+                )?,
+            }
+        }
         _ => {
             if matches.is_present("list") {
                 let mut blogs = db.blogs.iter().peekable();
