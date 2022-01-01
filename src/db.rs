@@ -1,6 +1,6 @@
 use crate::error::{Error, Result};
 use std::{
-    collections::{hash_map::Entry, HashMap},
+    collections::{btree_map::Entry, BTreeMap},
     fs::OpenOptions,
     io::{BufRead, BufReader, Write},
 };
@@ -8,7 +8,7 @@ use std::{
 const DB_FILE_NAME: &str = "blog.db";
 
 pub(crate) struct Database {
-    blogs: HashMap<String, String>,
+    blogs: BTreeMap<String, String>,
 }
 
 impl Database {
@@ -19,7 +19,7 @@ impl Database {
             .create(true)
             .open(DB_FILE_NAME)?;
 
-        let mut blogs = HashMap::new();
+        let mut blogs = BTreeMap::new();
         let reader = BufReader::new(file);
         for line in reader.lines() {
             let line = line?;
@@ -49,7 +49,7 @@ impl Database {
 
     pub(crate) fn subscriptions(
         &self,
-    ) -> std::iter::Peekable<std::collections::hash_map::Iter<String, String>> {
+    ) -> std::iter::Peekable<std::collections::btree_map::Iter<String, String>> {
         self.blogs.iter().peekable()
     }
 }
