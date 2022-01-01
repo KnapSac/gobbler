@@ -19,4 +19,7 @@ pub(crate) enum Error {
         new_url: String,
         old_url: String,
     },
+
+    #[error("'{0}' is not a valid RSS feed url")]
+    InvalidRssFeedUrl(String),
 }

@@ -2,14 +2,14 @@ mod app;
 mod db;
 mod error;
 
-use crate::{app::build_app, db::Database};
+use crate::{app::build_app, db::Database, error::*};
 use chrono::{DateTime, Duration, FixedOffset, Utc};
-use error::Result;
 use rayon::prelude::*;
 use std::{
     fmt::{self, Debug},
     io::Write,
     ops::Sub,
+    process::exit,
 };
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 use windows::{
@@ -18,7 +18,17 @@ use windows::{
     Web::Syndication::{SyndicationClient, SyndicationFormat, SyndicationItem},
 };
 
-fn main() -> Result<()> {
+fn main() {
+    match run() {
+        Ok(_) => {}
+        Err(error) => {
+            eprintln!("{}", error);
+            exit(1);
+        }
+    }
+}
+
+fn run() -> Result<()> {
     let matches = build_app().get_matches();
 
     let mut db = Database::new()?;
@@ -28,6 +38,9 @@ fn main() -> Result<()> {
         Some(("add", add_matches)) => {
             let name = add_matches.value_of("name").unwrap();
             let url = add_matches.value_of("url").unwrap();
+            if valid_rss_feed(url).is_err() {
+                return Err(Error::InvalidRssFeedUrl(url.to_string()));
+            }
 
             db.add(name.to_string(), url.to_string())?;
 
@@ -141,6 +154,18 @@ fn write_feed_colored(
     }
 
     Ok(())
+}
+
+fn valid_rss_feed(url: &str) -> Result<()> {
+    let uri = Uri::CreateUri(HSTRING::from(url))?;
+    let client = SyndicationClient::new()?;
+    let feed = client.RetrieveFeedAsync(uri)?.get()?;
+
+    if feed.Items()?.into_iter().next().is_some() {
+        return Ok(());
+    }
+
+    Err(Error::InvalidRssFeedUrl(url.to_string()))
 }
 
 struct BlogPost {
