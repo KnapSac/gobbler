@@ -22,7 +22,7 @@ fn main() -> Result<()> {
     let mut db = Database::new()?;
 
     match matches.subcommand() {
-        ("add", Some(add_matches)) => {
+        Some(("add", add_matches)) => {
             let name = add_matches.value_of("name").unwrap();
             let url = add_matches.value_of("url").unwrap();
 
