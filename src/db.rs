@@ -8,7 +8,7 @@ use std::{
 const DB_FILE_NAME: &str = "blog.db";
 
 pub(crate) struct Database {
-    blogs: BTreeMap<String, String>,
+    pub(crate) blogs: BTreeMap<String, String>,
 }
 
 impl Database {
@@ -45,12 +45,6 @@ impl Database {
                 append_entry_to_file(&name, url)
             }
         }
-    }
-
-    pub(crate) fn subscriptions(
-        &self,
-    ) -> std::iter::Peekable<std::collections::btree_map::Iter<String, String>> {
-        self.blogs.iter().peekable()
     }
 }
 

@@ -5,6 +5,7 @@ mod error;
 use crate::{app::build_app, db::Database};
 use chrono::{DateTime, Duration, FixedOffset, Utc};
 use error::Result;
+use rayon::prelude::*;
 use std::{
     fmt::{self, Debug},
     ops::Sub,
@@ -33,20 +34,31 @@ fn main() -> Result<()> {
             );
         }
         _ => {
-            let mut blogs = db.subscriptions();
-            if blogs.peek().is_none() {
-                println!("No subscriptions added yet");
-                return Ok(());
-            }
-
             if matches.is_present("list") {
+                let mut blogs = db.blogs.iter().peekable();
+                if blogs.peek().is_none() {
+                    println!("No subscriptions added yet");
+                    return Ok(());
+                }
+
                 blogs.for_each(|(name, url)| println!("{} - {}", name, url));
             } else {
-                let client = SyndicationClient::new()?;
-                for (name, url) in blogs {
+                collect_feeds_with_items_since(
+                    &db,
+                    &SyndicationClient::new()?,
+                    Utc::now().sub(Duration::weeks(4)),
+                )?
+                .iter()
+                .for_each(|(name, posts)| {
                     println!("{}:", name);
-                    print_posts_from_last_four_weeks(&client, url)?;
-                }
+                    if posts.is_empty() {
+                        println!("    No new posts in the last 4 weeks");
+                        return;
+                    }
+                    for post in posts {
+                        println!("    {:#?}", post);
+                    }
+                });
             }
         }
     }
@@ -54,32 +66,35 @@ fn main() -> Result<()> {
     Ok(())
 }
 
-fn print_posts_from_last_four_weeks(client: &SyndicationClient, url: &str) -> Result<()> {
-    let uri = Uri::CreateUri(HSTRING::from(url))?;
-    let feed = client.RetrieveFeedAsync(uri)?.get()?;
+fn collect_feeds_with_items_since(
+    db: &Database,
+    client: &SyndicationClient,
+    since: DateTime<Utc>,
+) -> Result<Vec<(String, Vec<BlogPost>)>> {
+    db.blogs
+        .par_iter()
+        .map(|(name, url)| -> Result<(String, Vec<BlogPost>)> {
+            let uri = Uri::CreateUri(HSTRING::from(url))?;
+            let feed = client.RetrieveFeedAsync(uri)?.get()?;
 
-    let format = feed.SourceFormat()?;
-    if format != SyndicationFormat::Atom10 && format != SyndicationFormat::Rss20 {
-        eprintln!("WARNING: Unsupported RSS feed format");
-    }
+            let format = feed.SourceFormat()?;
+            if format != SyndicationFormat::Atom10 && format != SyndicationFormat::Rss20 {
+                eprintln!("WARNING: Unsupported RSS feed format");
+            }
 
-    let four_weeks_ago = Utc::now().sub(Duration::weeks(4));
-    let mut has_items = false;
-    for item in feed.Items()? {
-        let post = BlogPost::try_from((item, format)).unwrap();
-        if post.timestamp < four_weeks_ago {
-            break;
-        }
+            let mut results = vec![];
+            for item in feed.Items()? {
+                let post = BlogPost::try_from((item, format)).unwrap();
+                if post.timestamp < since {
+                    break;
+                }
 
-        println!("    {:#?}", post);
-        has_items = true;
-    }
+                results.push(post);
+            }
 
-    if !has_items {
-        println!("    No new posts in the last 4 weeks");
-    }
-
-    Ok(())
+            Ok((name.clone(), results))
+        })
+        .collect()
 }
 
 struct BlogPost {
@@ -92,17 +107,9 @@ impl TryFrom<(SyndicationItem, SyndicationFormat)> for BlogPost {
     type Error = crate::error::Error;
 
     fn try_from((item, format): (SyndicationItem, SyndicationFormat)) -> Result<Self> {
-        let timestamp_tag_name = if format == SyndicationFormat::Atom10 {
-            "updated"
-        } else if format == SyndicationFormat::Rss20 {
-            "pubDate"
-        } else {
-            unimplemented!()
-        };
-
         let xml = item.GetXmlDocument(format)?;
         let timestamp = xml
-            .GetElementsByTagName(HSTRING::from(timestamp_tag_name))?
+            .GetElementsByTagName(HSTRING::from("updated"))?
             .First()?
             .next()
             .unwrap()
