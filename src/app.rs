@@ -9,6 +9,12 @@ pub fn build_app() -> App<'static> {
                 .short('l')
                 .help("List RSS feed subscriptions"),
         )
+        .arg(
+            Arg::new("skip-empty-feeds")
+                .long("skip-empty-feeds")
+                .short('s')
+                .help("Skip feeds which no items"),
+        )
         .subcommand(
             App::new("add")
                 .about("Add a RSS feed to subscribe to")

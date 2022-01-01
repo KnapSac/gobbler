@@ -51,7 +51,8 @@ fn main() -> Result<()> {
                     &db,
                     &SyndicationClient::new()?,
                     Utc::now().sub(Duration::weeks(4)),
-                )?
+                    matches.is_present("skip-empty-feeds"),
+                )
                 .iter()
                 {
                     write_feed_colored(&mut stdout, item)?;
@@ -67,31 +68,47 @@ fn collect_feeds_with_items_since(
     db: &Database,
     client: &SyndicationClient,
     since: DateTime<Utc>,
-) -> Result<Vec<(String, Vec<BlogPost>)>> {
+    skip_empty_feeds: bool,
+) -> Vec<(String, Vec<BlogPost>)> {
     db.blogs
         .par_iter()
-        .map(|(name, url)| -> Result<(String, Vec<BlogPost>)> {
-            let uri = Uri::CreateUri(HSTRING::from(url))?;
-            let feed = client.RetrieveFeedAsync(uri)?.get()?;
-
-            let format = feed.SourceFormat()?;
-            if format != SyndicationFormat::Atom10 && format != SyndicationFormat::Rss20 {
-                eprintln!("WARNING: Unsupported RSS feed format");
-            }
-
-            let mut results = vec![];
-            for item in feed.Items()? {
-                let post = BlogPost::try_from((item, format)).unwrap();
-                if post.timestamp < since {
-                    break;
+        .filter_map(|item| match get_items_from_feed(client, item, since) {
+            Ok(result) => {
+                if skip_empty_feeds && result.1.is_empty() {
+                    None
+                } else {
+                    Some(result)
                 }
-
-                results.push(post);
             }
-
-            Ok((name.clone(), results))
+            Err(_) => None,
         })
         .collect()
+}
+
+fn get_items_from_feed(
+    client: &SyndicationClient,
+    (name, url): (&String, &String),
+    since: DateTime<Utc>,
+) -> Result<(String, Vec<BlogPost>)> {
+    let uri = Uri::CreateUri(HSTRING::from(url))?;
+    let feed = client.RetrieveFeedAsync(uri)?.get()?;
+
+    let format = feed.SourceFormat()?;
+    if format != SyndicationFormat::Atom10 && format != SyndicationFormat::Rss20 {
+        eprintln!("WARNING: Unsupported RSS feed format");
+    }
+
+    let mut results = vec![];
+    for item in feed.Items()? {
+        let post = BlogPost::try_from((item, format)).unwrap();
+        if post.timestamp < since {
+            break;
+        }
+
+        results.push(post);
+    }
+
+    Ok((name.clone(), results))
 }
 
 fn write_feed_colored(
