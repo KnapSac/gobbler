@@ -33,38 +33,50 @@ fn main() -> Result<()> {
             );
         }
         _ => {
+            let mut blogs = db.subscriptions();
+            if blogs.peek().is_none() {
+                println!("No subscriptions added yet");
+                return Ok(());
+            }
+
             if matches.is_present("list") {
-                let mut blogs = db.subscriptions();
-                if blogs.peek().is_none() {
-                    println!("No subscriptions added yet");
-                } else {
-                    blogs.for_each(|(name, url)| println!("{} - {}", name, url));
+                blogs.for_each(|(name, url)| println!("{} - {}", name, url));
+            } else {
+                let client = SyndicationClient::new()?;
+                for (name, url) in blogs {
+                    println!("{}:", name);
+                    print_posts_from_last_four_weeks(&client, url)?;
                 }
             }
         }
     }
 
     Ok(())
-
-    /*
-    let client = SyndicationClient::new()?;
-
-    print_posts_from_last_four_weeks(&client, "https://fasterthanli.me/index.xml")
-    */
 }
 
 fn print_posts_from_last_four_weeks(client: &SyndicationClient, url: &str) -> Result<()> {
     let uri = Uri::CreateUri(HSTRING::from(url))?;
     let feed = client.RetrieveFeedAsync(uri)?.get()?;
 
+    let format = feed.SourceFormat()?;
+    if format != SyndicationFormat::Atom10 && format != SyndicationFormat::Rss20 {
+        eprintln!("WARNING: Unsupported RSS feed format");
+    }
+
     let four_weeks_ago = Utc::now().sub(Duration::weeks(4));
+    let mut has_items = false;
     for item in feed.Items()? {
-        let post = BlogPost::try_from((item, feed.SourceFormat()?)).unwrap();
+        let post = BlogPost::try_from((item, format)).unwrap();
         if post.timestamp < four_weeks_ago {
             break;
         }
 
-        println!("{:#?}", post);
+        println!("    {:#?}", post);
+        has_items = true;
+    }
+
+    if !has_items {
+        println!("    No new posts in the last 4 weeks");
     }
 
     Ok(())
