@@ -92,9 +92,17 @@ impl TryFrom<(SyndicationItem, SyndicationFormat)> for BlogPost {
     type Error = crate::error::Error;
 
     fn try_from((item, format): (SyndicationItem, SyndicationFormat)) -> Result<Self> {
+        let timestamp_tag_name = if format == SyndicationFormat::Atom10 {
+            "updated"
+        } else if format == SyndicationFormat::Rss20 {
+            "pubDate"
+        } else {
+            unimplemented!()
+        };
+
         let xml = item.GetXmlDocument(format)?;
-        let updated = xml
-            .GetElementsByTagName(HSTRING::from("updated"))?
+        let timestamp = xml
+            .GetElementsByTagName(HSTRING::from(timestamp_tag_name))?
             .First()?
             .next()
             .unwrap()
@@ -104,7 +112,7 @@ impl TryFrom<(SyndicationItem, SyndicationFormat)> for BlogPost {
         Ok(Self {
             title: item.Title()?.Text()?.to_string_lossy(),
             id: item.Id()?.to_string_lossy(),
-            timestamp: DateTime::parse_from_rfc3339(&updated)?,
+            timestamp: DateTime::parse_from_rfc3339(&timestamp)?,
         })
     }
 }
