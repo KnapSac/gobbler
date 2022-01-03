@@ -10,10 +10,19 @@ pub fn build_app() -> App<'static> {
                 .help("List RSS feed subscriptions"),
         )
         .arg(
-            Arg::new("skip-empty-feeds")
-                .long("skip-empty-feeds")
-                .short('s')
-                .help("Skip feeds which no items"),
+            Arg::new("hide-empty-feeds")
+                .long("hide-empty-feeds")
+                .short('i')
+                .help("Hide feeds with no items"),
+        )
+        .arg(
+            Arg::new("weeks")
+                .long("weeks")
+                .short('w')
+                .help("Show posts from the last NUM weeks")
+                .takes_value(true)
+                .value_name("NUM")
+                .default_value("4"),
         )
         .subcommand(
             App::new("add")

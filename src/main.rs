@@ -10,6 +10,7 @@ use std::{
     io::Write,
     ops::Sub,
     process::exit,
+    str::FromStr,
 };
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 use windows::{
@@ -54,12 +55,12 @@ fn run() -> Result<()> {
             let name = remove_matches.value_of("name").unwrap();
             match db.remove(name)? {
                 Some(_) => writeln!(
-                    &mut stdout, 
+                    &mut stdout,
                     "Succesfully removed '{}' from your list of subscriptions", 
                     name
                 )?,
                 None => writeln!(
-                    &mut stdout, 
+                    &mut stdout,
                     "Failed to remove '{}' from your list of subscriptions as you are not subscribed to that feed", 
                     name
                 )?,
@@ -78,7 +79,9 @@ fn run() -> Result<()> {
                 for item in collect_feeds_with_items_since(
                     &db,
                     &SyndicationClient::new()?,
-                    Utc::now().sub(Duration::weeks(4)),
+                    Utc::now().sub(Duration::weeks(i64::from_str(
+                        matches.value_of("weeks").unwrap(),
+                    )?)),
                     matches.is_present("skip-empty-feeds"),
                 )
                 .iter()

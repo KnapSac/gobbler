@@ -22,4 +22,7 @@ pub(crate) enum Error {
 
     #[error("'{0}' is not a valid RSS feed url")]
     InvalidRssFeedUrl(String),
+
+    #[error("Failed to parse to int")]
+    ParseInt(#[from] std::num::ParseIntError),
 }
