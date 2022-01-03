@@ -1,3 +1,5 @@
+//! Contains the `clap` [`App`] definition.
+
 use clap::{crate_name, crate_version, App, Arg};
 
 pub fn build_app() -> App<'static> {

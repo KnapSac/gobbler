@@ -1,3 +1,5 @@
+//! Functions for interacting with RSS feeds and subscriptions to those feeds.
+
 use crate::error::*;
 use chrono::{DateTime, FixedOffset, Utc};
 use rayon::prelude::*;
@@ -14,14 +16,16 @@ use windows::{
     Web::Syndication::{SyndicationClient, SyndicationFormat, SyndicationItem},
 };
 
+/// The name of the subscriptions file.
 const DB_FILE_NAME: &str = "blog.db";
 
+/// Represents a collection of RSS feed subscriptions.
 pub(crate) struct Database {
     pub(crate) feeds: BTreeMap<String, String>,
 }
 
 impl Database {
-    /// Create a new `Database` by reading it from a file. If the file does not exist yet, it is
+    /// Create a new [`Database`] by reading it from a file. If the file does not exist yet, it is
     /// created.
     pub(crate) fn new() -> Result<Self> {
         let file = OpenOptions::new()
@@ -92,7 +96,7 @@ impl Database {
         }
     }
 
-    /// Write the list of subscriptions to the given `StandardStream`.
+    /// Write the list of subscriptions to the given [`StandardStream`].
     pub(crate) fn print_subscriptions(&self, stdout: &mut StandardStream) -> Result<()> {
         if self.is_empty() {
             writeln!(stdout, "No subscriptions added yet")?;
@@ -106,7 +110,7 @@ impl Database {
         Ok(())
     }
 
-    /// Check whether any feed subscriptions have been stored yet.
+    /// Check whether any feed subscriptions have been added yet.
     fn is_empty(&self) -> bool {
         self.feeds.iter().peekable().peek().is_none()
     }
@@ -184,12 +188,12 @@ pub(crate) struct Feed {
 }
 
 impl Feed {
-    /// Create a new `Feed` instance with the given name and items.
+    /// Create a new [`Feed`] instance with the given name and items.
     fn new(name: String, items: Vec<FeedItem>) -> Self {
         Self { name, items }
     }
 
-    /// Writes the feed to the given `StandardStream`.
+    /// Writes the feed to the given [`StandardStream`].
     pub(crate) fn print_colored(&self, stdout: &mut StandardStream) -> Result<()> {
         stdout.set_color(ColorSpec::new().set_bold(true).set_fg(Some(Color::Green)))?;
         writeln!(stdout, "{}:", self.name)?;
@@ -220,7 +224,7 @@ impl Feed {
     }
 }
 
-/// An item in a `Feed`
+/// An item in a [`Feed`]
 pub(crate) struct FeedItem {
     /// The title of the item
     title: String,

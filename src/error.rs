@@ -1,3 +1,5 @@
+//! Contains the error type for `gobbler`.
+
 use thiserror::Error;
 
 pub(crate) type Result<R> = std::result::Result<R, Error>;
