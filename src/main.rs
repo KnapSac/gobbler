@@ -1,8 +1,9 @@
 mod app;
 mod error;
 mod feed;
+mod reg;
 
-use crate::{app::build_app, error::*, feed::Database};
+use crate::{app::build_app, error::*, feed::Database, reg::*};
 use chrono::{Duration, Utc};
 use std::{io::Write, ops::Sub, process::exit, str::FromStr};
 use termcolor::{ColorChoice, StandardStream};
@@ -59,17 +60,30 @@ fn run() -> Result<()> {
             if matches.is_present("list") {
                 db.print_subscriptions(&mut stdout)?;
             } else {
+                let use_ran_today = matches.occurrences_of("run-days") > 0;
+
+                if use_ran_today {
+                    let run_days = i64::from_str(matches.value_of("run-days").unwrap())?;
+                    if ran_in_past_n_days(run_days)? {
+                        return Ok(());
+                    }
+                }
+
                 for feed in db
                     .collect_feeds_with_items_since(
                         &SyndicationClient::new()?,
                         Utc::now().sub(Duration::weeks(i64::from_str(
                             matches.value_of("weeks").unwrap(),
                         )?)),
-                        matches.is_present("skip-empty-feeds"),
+                        matches.is_present("hide-empty-feeds"),
                     )
                     .iter()
                 {
                     feed.print_colored(&mut stdout)?;
+                }
+
+                if use_ran_today {
+                    set_ran_today()?;
                 }
             }
         }

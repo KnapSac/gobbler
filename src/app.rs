@@ -14,7 +14,7 @@ pub fn build_app() -> App<'static> {
         .arg(
             Arg::new("hide-empty-feeds")
                 .long("hide-empty-feeds")
-                .short('i')
+                .short('H')
                 .help("Hide feeds with no items"),
         )
         .arg(
@@ -25,6 +25,17 @@ pub fn build_app() -> App<'static> {
                 .takes_value(true)
                 .value_name("NUM")
                 .default_value("4"),
+        )
+        .arg(
+            Arg::new("run-days")
+                .long("run-days")
+                .short('r')
+                .help("Show new feed items every NUM days")
+                .takes_value(true)
+                .value_name("NUM")
+                .min_values(0)
+                .require_equals(true)
+                .default_missing_value("1"),
         )
         .subcommand(
             App::new("add")
