@@ -27,4 +27,13 @@ pub(crate) enum Error {
 
     #[error("Failed to parse to int")]
     ParseInt(#[from] std::num::ParseIntError),
+
+    #[error("Failed to convert PWSTR to String")]
+    PwstrToString(#[from] std::string::FromUtf16Error),
+
+    #[error("Failed to create PathBuf")]
+    PathBufConvert(#[from] std::convert::Infallible),
+
+    #[error("Application data roaming directory not found")]
+    AppDataRoamingDirNotFound,
 }
