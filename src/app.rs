@@ -6,6 +6,15 @@ pub fn build_app() -> App<'static> {
     App::new(crate_name!())
         .version(crate_version!())
         .arg(
+            Arg::new("subscriptions-file")
+                .long("subscriptions-file")
+                .short('s')
+                .help("The subscriptions file to use (instead of the default file)")
+                .takes_value(true)
+                .value_name("FILE")
+                .global(true),
+        )
+        .arg(
             Arg::new("list")
                 .long("list")
                 .short('l')
