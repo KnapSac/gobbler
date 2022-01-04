@@ -31,23 +31,15 @@ impl Database {
     /// created.
     pub(crate) fn new() -> Result<Self> {
         let path = get_subscriptions_db_file()?;
+        let feeds = get_feeds_from_subscriptions_file(&path)?;
 
-        let file = OpenOptions::new()
-            .read(true)
-            .write(true)
-            .create(true)
-            .open(&path)?;
+        Ok(Self { feeds, path })
+    }
 
-        let mut feeds = BTreeMap::new();
-        let reader = BufReader::new(file);
-        for line in reader.lines() {
-            let line = line?;
-            if let Some((name, url)) = line.split_once(',') {
-                // ASSUME: When adding new feeds, they are checked for duplicates, so we don't need
-                //         to check that here.
-                feeds.insert(name.to_string(), url.to_string());
-            }
-        }
+    /// Create a new [`Database`] by reading it from the given file. If the file does not exist
+    /// yet, it is created.
+    pub(crate) fn from_file(path: PathBuf) -> Result<Self> {
+        let feeds = get_feeds_from_subscriptions_file(&path)?;
 
         Ok(Self { feeds, path })
     }
@@ -142,6 +134,28 @@ impl Database {
             })
             .collect()
     }
+}
+
+/// Get the feeds from the subscriptions listed in `file`.
+fn get_feeds_from_subscriptions_file(file: &Path) -> Result<BTreeMap<String, String>> {
+    let file = OpenOptions::new()
+        .read(true)
+        .write(true)
+        .create(true)
+        .open(&file)?;
+
+    let mut feeds = BTreeMap::new();
+    let reader = BufReader::new(file);
+    for line in reader.lines() {
+        let line = line?;
+        if let Some((name, url)) = line.split_once(',') {
+            // ASSUME: When adding new feeds, they are checked for duplicates, so we don't need
+            //         to check that here.
+            feeds.insert(name.to_string(), url.to_string());
+        }
+    }
+
+    Ok(feeds)
 }
 
 /// Add a new subscription to the subscriptions file.

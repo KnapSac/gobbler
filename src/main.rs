@@ -7,7 +7,7 @@ mod reg;
 
 use crate::{app::build_app, error::*, feed::Database, reg::*};
 use chrono::{Duration, Utc};
-use std::{io::Write, ops::Sub, process::exit, str::FromStr};
+use std::{io::Write, ops::Sub, path::PathBuf, process::exit, str::FromStr};
 use termcolor::{ColorChoice, StandardStream};
 use windows::{core::HSTRING, Foundation::Uri, Web::Syndication::SyndicationClient};
 
@@ -24,7 +24,11 @@ fn main() {
 fn run() -> Result<()> {
     let matches = build_app().get_matches();
 
-    let mut db = Database::new()?;
+    let mut db = if let Some(subscriptions_file) = matches.value_of("subscriptions-file") {
+        Database::from_file(PathBuf::from_str(subscriptions_file)?)?
+    } else {
+        Database::new()?
+    };
     let mut stdout = StandardStream::stdout(ColorChoice::Auto);
 
     match matches.subcommand() {
