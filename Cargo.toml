@@ -22,4 +22,6 @@ features = [
     "Foundation",
     "Foundation_Collections",
     "Web_Syndication",
+    "Win32_Foundation",
+    "Win32_UI_Shell",
 ]

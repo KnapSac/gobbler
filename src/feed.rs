@@ -6,33 +6,37 @@ use rayon::prelude::*;
 use std::{
     collections::{btree_map::Entry, BTreeMap},
     fmt::{self, Debug},
-    fs::OpenOptions,
+    fs::{self, OpenOptions},
     io::{BufRead, BufReader, Write},
+    path::{Path, PathBuf},
+    slice,
+    str::FromStr,
 };
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
 use windows::{
     core::HSTRING,
     Foundation::Uri,
     Web::Syndication::{SyndicationClient, SyndicationFormat, SyndicationItem},
+    Win32::UI::Shell::{FOLDERID_RoamingAppData, SHGetKnownFolderPath},
 };
-
-/// The name of the subscriptions file.
-const DB_FILE_NAME: &str = "blog.db";
 
 /// Represents a collection of RSS feed subscriptions.
 pub(crate) struct Database {
     pub(crate) feeds: BTreeMap<String, String>,
+    path: PathBuf,
 }
 
 impl Database {
     /// Create a new [`Database`] by reading it from a file. If the file does not exist yet, it is
     /// created.
     pub(crate) fn new() -> Result<Self> {
+        let path = get_subscriptions_db_file()?;
+
         let file = OpenOptions::new()
             .read(true)
             .write(true)
             .create(true)
-            .open(DB_FILE_NAME)?;
+            .open(&path)?;
 
         let mut feeds = BTreeMap::new();
         let reader = BufReader::new(file);
@@ -45,7 +49,7 @@ impl Database {
             }
         }
 
-        Ok(Self { feeds })
+        Ok(Self { feeds, path })
     }
 
     /// Add a feed subscription.
@@ -58,7 +62,7 @@ impl Database {
             }),
             Entry::Vacant(entry) => {
                 let url = entry.insert(url);
-                append_entry_to_file(&name, url)
+                append_entry_to_file(&self.path, &name, url)
             }
         }
     }
@@ -67,7 +71,7 @@ impl Database {
     pub(crate) fn remove(&mut self, name_to_remove: &str) -> Result<Option<String>> {
         match self.feeds.remove(name_to_remove) {
             Some(url) => {
-                let file = OpenOptions::new().read(true).open(DB_FILE_NAME)?;
+                let file = OpenOptions::new().read(true).open(&self.path)?;
                 let reader = BufReader::new(file);
 
                 let lines: Vec<String> = reader
@@ -79,7 +83,7 @@ impl Database {
                     .write(true)
                     .create(true)
                     .truncate(true)
-                    .open(DB_FILE_NAME)?;
+                    .open(&self.path)?;
 
                 for line in lines {
                     if let Some((name, _)) = line.split_once(',') {
@@ -141,15 +145,44 @@ impl Database {
 }
 
 /// Add a new subscription to the subscriptions file.
-fn append_entry_to_file(name: &str, url: &str) -> Result<()> {
+fn append_entry_to_file(path: &Path, name: &str, url: &str) -> Result<()> {
     OpenOptions::new()
         .read(true)
         .write(true)
         .append(true)
-        .open(DB_FILE_NAME)?
+        .open(path)?
         .write_all(format!("{},{}\n", name, url).as_bytes())?;
 
     Ok(())
+}
+
+/// Get the path to the feed subscriptions file.
+fn get_subscriptions_db_file() -> Result<PathBuf> {
+    // Future improvements may be possible, see https://github.com/microsoft/windows-rs/issues/595
+    unsafe {
+        let path = SHGetKnownFolderPath(&FOLDERID_RoamingAppData as *const _, 0, None)?;
+        if path.is_null() {
+            return Err(Error::AppDataRoamingDirNotFound);
+        }
+
+        let mut end = path.0;
+        while *end != 0 {
+            end = end.add(1);
+        }
+
+        let result =
+            String::from_utf16(slice::from_raw_parts(path.0, end.offset_from(path.0) as _))?;
+
+        let mut path = PathBuf::from_str(&result)?;
+        path.push("gobbler");
+
+        // Ensure the path exists
+        fs::create_dir_all(&path)?;
+
+        path.push("subscriptions.db");
+
+        Ok(path)
+    }
 }
 
 /// Get all the items from a feed, returning only those items which were last updated after `since`.
