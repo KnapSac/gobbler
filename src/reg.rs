@@ -14,7 +14,7 @@ pub(crate) fn ran_in_past_n_days(n: i64) -> Result<bool> {
     let last_ran = get_last_ran_at()?;
     let ran_before = Utc::now().date().and_hms(0, 0, 0).sub(Duration::days(n));
 
-    Ok(last_ran >= ran_before)
+    Ok(last_ran > ran_before)
 }
 
 /// Stores that `gobbler` listed feed items today.
