@@ -21,6 +21,11 @@ pub fn build_app() -> App<'static> {
                 .help("List RSS feed subscriptions"),
         )
         .arg(
+            Arg::new("last-ran-at")
+                .long("last-ran-at")
+                .help("Get the time the tool was last used"),
+        )
+        .arg(
             Arg::new("hide-empty-feeds")
                 .long("hide-empty-feeds")
                 .short('H')

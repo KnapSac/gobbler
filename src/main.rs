@@ -65,6 +65,13 @@ fn run() -> Result<()> {
         _ => {
             if matches.is_present("list") {
                 db.print_subscriptions(&mut stdout)?;
+            } else if matches.is_present("last-ran-at") {
+                let last_ran_at = get_last_ran_at()?;
+                writeln!(
+                    &mut stdout,
+                    "Gobbler last ran at {}",
+                    last_ran_at.format("%c")
+                )?;
             } else {
                 let use_ran_today = matches.occurrences_of("run-days") > 0;
 
