@@ -52,6 +52,10 @@ struct Options {
     #[clap(long = "weeks", short = 'w', value_name = "NUM", default_value = "4")]
     weeks: i64,
 
+    /// Only show posts which are new since gobbler was last ran
+    #[clap(long = "new-only", short = 'N')]
+    new_only: bool,
+
     /// Show new feed items every NUM days
     #[clap(
         long = "run-days",
@@ -189,10 +193,17 @@ fn run() -> Result<()> {
                 }
 
                 let mut found_items = false;
+                let since = if options.new_only {
+                    // Only show new posts
+                    get_last_ran_at()?
+                } else {
+                    Utc::now().sub(Duration::weeks(options.weeks))
+                };
+
                 for feed in db
                     .collect_feeds_with_items_since(
                         &SyndicationClient::new()?,
-                        Utc::now().sub(Duration::weeks(options.weeks)),
+                        since,
                         options.hide_empty_feeds,
                         options.filter_by_name,
                     )
