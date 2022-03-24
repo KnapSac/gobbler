@@ -51,6 +51,14 @@ pub fn build_app() -> App<'static> {
                 .require_equals(true)
                 .default_missing_value("1"),
         )
+        .arg(
+            Arg::new("filter-by-name")
+                .long("filter-name")
+                .short('n')
+                .help("Only show feed items from feeds whose name includes NAME")
+                .takes_value(true)
+                .value_name("NAME"),
+        )
         .subcommand(
             App::new("add")
                 .about("Add a RSS feed subscription")
