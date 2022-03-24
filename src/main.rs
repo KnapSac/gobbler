@@ -89,6 +89,7 @@ fn run() -> Result<()> {
                             matches.value_of("weeks").unwrap(),
                         )?)),
                         matches.is_present("hide-empty-feeds"),
+                        matches.value_of("filter-by-name"),
                     )
                     .iter()
                 {

@@ -113,24 +113,37 @@ impl Database {
 
     /// Collect all the feeds with items which were last updated after `since`. If
     /// `skip_empty_feeds` is `true`, empty feeds (feeds with no items in the specified timeframe)
-    /// are not returned.
+    /// are not returned. When a `filter_name` is passed in, any feeds whose name contains
+    /// `filter_name` will not be returned.
     pub(crate) fn collect_feeds_with_items_since(
         &self,
         client: &SyndicationClient,
         since: DateTime<Utc>,
         skip_empty_feeds: bool,
+        filter_name: Option<&str>,
     ) -> Vec<Feed> {
+        let lowered_filter_name = filter_name.map(|filter_name| filter_name.to_lowercase());
+
         self.feeds
             .par_iter()
-            .filter_map(|item| match get_items_from_feed(client, item, since) {
-                Ok(feed) => {
-                    if skip_empty_feeds && feed.items.is_empty() {
-                        None
-                    } else {
-                        Some(feed)
+            .filter_map(|(name, url)| {
+                if let Some(lowered_filter_name) = &lowered_filter_name {
+                    let lowered_name = name.to_lowercase();
+                    if !lowered_name.contains(lowered_filter_name) {
+                        return None;
                     }
                 }
-                Err(_) => None,
+
+                match get_items_from_feed(client, (name, url), since) {
+                    Ok(feed) => {
+                        if skip_empty_feeds && feed.items.is_empty() {
+                            None
+                        } else {
+                            Some(feed)
+                        }
+                    }
+                    Err(_) => None,
+                }
             })
             .collect()
     }
