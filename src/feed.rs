@@ -307,9 +307,20 @@ impl TryFrom<(SyndicationItem, SyndicationFormat)> for FeedItem {
             .InnerText()?
             .to_string_lossy();
 
+        let mut id = item.Id()?.to_string_lossy();
+        if !is_valid_url(&id) {
+            id = xml
+                .GetElementsByTagName(HSTRING::from("link"))?
+                .First()?
+                .next()
+                .unwrap()
+                .InnerText()?
+                .to_string_lossy();
+        }
+
         Ok(Self {
             title: item.Title()?.Text()?.to_string_lossy(),
-            id: item.Id()?.to_string_lossy(),
+            id,
             timestamp: DateTime::parse_from_rfc3339(&timestamp)?,
         })
     }
@@ -325,4 +336,9 @@ impl Debug for FeedItem {
             self.id
         )
     }
+}
+
+/// Checks whether `url` is a valid url, in a relatively dirty way.
+fn is_valid_url(url: &str) -> bool {
+    url.starts_with("http")
 }
