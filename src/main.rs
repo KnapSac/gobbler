@@ -30,8 +30,17 @@ fn run() -> Result<()> {
     let matches = build_app().get_matches();
 
     if matches.is_present("export") {
+        println!("Exporting subscriptions to {DB_FILE}");
         let subscriptions_file = Database::get_subscriptions_db_file()?;
         std::fs::copy(subscriptions_file, DB_FILE)?;
+        println!("Export successful");
+        return Ok(());
+    }
+
+    if let Some(import_file) = matches.value_of("import") {
+        println!("Importing subscriptions from {DB_FILE}");
+        Database::import_from(import_file)?;
+        println!("Import successful");
         return Ok(());
     }
 

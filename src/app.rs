@@ -20,6 +20,15 @@ pub fn build_app() -> App<'static> {
             ), //.exclusive(true),
         )
         .arg(
+            Arg::new("import")
+                .long("import")
+                .short('i')
+                .help("Imports the subscriptions listed in FILE")
+                .takes_value(true)
+                .value_name("FILE"),
+            //.exclusive(true),
+        )
+        .arg(
             Arg::new("list")
                 .long("list")
                 .short('l')

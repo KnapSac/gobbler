@@ -47,6 +47,15 @@ impl Database {
         Ok(Self { feeds, path })
     }
 
+    /// Import subscriptions from `import_file` and store them in the database. This will currently
+    /// overwrite any existing subscriptions, so use at your own risk!
+    pub(crate) fn import_from(import_file: &str) -> Result<()> {
+        let subscriptions_file = Self::get_subscriptions_db_file()?;
+        std::fs::copy(import_file, subscriptions_file)?;
+
+        Ok(())
+    }
+
     /// Add a feed subscription.
     pub(crate) fn add(&mut self, name: String, url: String) -> Result<()> {
         match self.feeds.entry(name.clone()) {
