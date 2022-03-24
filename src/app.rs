@@ -15,6 +15,11 @@ pub fn build_app() -> App<'static> {
                 .global(true),
         )
         .arg(
+            Arg::new("export").long("export").short('e').help(
+                "Exports the current subscriptions to 'subscriptions.db' in the current directory",
+            ), //.exclusive(true),
+        )
+        .arg(
             Arg::new("list")
                 .long("list")
                 .short('l')

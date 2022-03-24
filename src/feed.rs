@@ -20,6 +20,9 @@ use windows::{
     Win32::UI::Shell::{FOLDERID_RoamingAppData, SHGetKnownFolderPath},
 };
 
+/// The file used to store subscriptions.
+pub(crate) const DB_FILE: &str = "subscriptions.db";
+
 /// Represents a collection of RSS feed subscriptions.
 pub(crate) struct Database {
     pub(crate) feeds: BTreeMap<String, String>,
@@ -30,7 +33,7 @@ impl Database {
     /// Create a new [`Database`] by reading it from a file. If the file does not exist yet, it is
     /// created.
     pub(crate) fn new() -> Result<Self> {
-        let path = get_subscriptions_db_file()?;
+        let path = Self::get_subscriptions_db_file()?;
         let feeds = get_feeds_from_subscriptions_file(&path)?;
 
         Ok(Self { feeds, path })
@@ -147,6 +150,35 @@ impl Database {
             })
             .collect()
     }
+
+    /// Get the path to the feed subscriptions file.
+    pub(crate) fn get_subscriptions_db_file() -> Result<PathBuf> {
+        // Future improvements may be possible, see https://github.com/microsoft/windows-rs/issues/595
+        unsafe {
+            let path = SHGetKnownFolderPath(&FOLDERID_RoamingAppData as *const _, 0, None)?;
+            if path.is_null() {
+                return Err(Error::AppDataRoamingDirNotFound);
+            }
+
+            let mut end = path.0;
+            while *end != 0 {
+                end = end.add(1);
+            }
+
+            let result =
+                String::from_utf16(slice::from_raw_parts(path.0, end.offset_from(path.0) as _))?;
+
+            let mut path = PathBuf::from_str(&result)?;
+            path.push("gobbler");
+
+            // Ensure the path exists
+            fs::create_dir_all(&path)?;
+
+            path.push(DB_FILE);
+
+            Ok(path)
+        }
+    }
 }
 
 /// Get the feeds from the subscriptions listed in `file`.
@@ -181,35 +213,6 @@ fn append_entry_to_file(path: &Path, name: &str, url: &str) -> Result<()> {
         .write_all(format!("{},{}\n", name, url).as_bytes())?;
 
     Ok(())
-}
-
-/// Get the path to the feed subscriptions file.
-fn get_subscriptions_db_file() -> Result<PathBuf> {
-    // Future improvements may be possible, see https://github.com/microsoft/windows-rs/issues/595
-    unsafe {
-        let path = SHGetKnownFolderPath(&FOLDERID_RoamingAppData as *const _, 0, None)?;
-        if path.is_null() {
-            return Err(Error::AppDataRoamingDirNotFound);
-        }
-
-        let mut end = path.0;
-        while *end != 0 {
-            end = end.add(1);
-        }
-
-        let result =
-            String::from_utf16(slice::from_raw_parts(path.0, end.offset_from(path.0) as _))?;
-
-        let mut path = PathBuf::from_str(&result)?;
-        path.push("gobbler");
-
-        // Ensure the path exists
-        fs::create_dir_all(&path)?;
-
-        path.push("subscriptions.db");
-
-        Ok(path)
-    }
 }
 
 /// Get all the items from a feed, returning only those items which were last updated after `since`.
