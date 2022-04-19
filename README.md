@@ -1,13 +1,15 @@
 # gobbler
 A command line RSS feed subscriptions checker.
 
+This project is Windows only, as it makes use of the Windows-specific Syndication API.
+
 ## How to use
 Use the `add` and `remove` sub-commands to add and remove RSS feed subscriptions. Your active
 subscriptions can be viewed by using the `--list` flag.
 
 ### Controlling what is shown
-The `--weeks` option can be used to control from how many weeks items are shown, this defaults to 4
-weeks.
+The `--weeks` option can be used to control the number of weeks from which items are shown, this
+defaults to 4 weeks.
 
 Additionally, passing the `--hide-empty-feeds` flag will hide feeds with no items in the last number
 of specified weeks.
@@ -22,3 +24,11 @@ will see the new items in the RSS feeds you are subscribed to.
 
 If you do not want to see this daily, you can also use `gobbler --run-days=7` to see it every week
 (or after any other amount of days you like).
+
+## License
+Licensed under either of
+
+* Apache License, Version 2.0, ([LICENSE-APACHE](LICENSE-APACHE) or https://www.apache.org/licenses/LICENSE-2.0)
+* MIT license ([LICENSE-MIT](LICENSE-MIT) or https://opensource.org/licenses/MIT)
+
+at your option.
