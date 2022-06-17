@@ -12,6 +12,7 @@ pub fn build_app() -> App<'static> {
                 .help("The subscriptions file to use (instead of the default file)")
                 .takes_value(true)
                 .value_name("FILE")
+                .env("GOBBLER_SUBSCRIPTIONS_FILE")
                 .global(true),
         )
         .arg(
