@@ -8,7 +8,7 @@ license = "MIT OR Apache-2.0"
 
 [dependencies]
 chrono = "0.4.19"
-clap = { version = "3.0.0", features = ["cargo"] }
+clap = { version = "3.0.0", features = ["cargo", "env"] }
 rayon = "1.5.1"
 termcolor = "1.1.2"
 thiserror = "1.0.30"
