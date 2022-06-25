@@ -76,6 +76,10 @@ struct Options {
     )]
     posts_limit: usize,
 
+    /// Only show number of posts per feed
+    #[clap(long = "count-only", short = 'c')]
+    count_only: bool,
+
     #[clap(subcommand)]
     command: Option<Commands>,
 }
@@ -193,7 +197,12 @@ fn run() -> Result<()> {
                     )
                     .iter()
                 {
-                    feed.print_colored(&mut stdout, options.posts_limit)?;
+                    feed.print_colored(
+                        &mut stdout,
+                        options.weeks,
+                        options.posts_limit, 
+                        options.count_only
+                    )?;
                 }
 
                 if use_ran_today {
