@@ -1,20 +1,96 @@
 #![doc = include_str!("../README.md")]
 
-mod app;
 mod error;
 mod feed;
 mod reg;
 
 use crate::{
-    app::build_app,
     error::*,
     feed::{Database, DB_FILE},
     reg::*,
 };
 use chrono::{Duration, Utc};
+use clap::{Parser, Subcommand};
 use std::{io::Write, ops::Sub, path::PathBuf, process::exit, str::FromStr};
 use termcolor::{ColorChoice, StandardStream};
 use windows::{core::HSTRING, Foundation::Uri, Web::Syndication::SyndicationClient};
+
+#[derive(Parser)]
+#[clap(author, version, about, long_about = None)]
+struct Options {
+    /// The subscriptions file to use (instead of the default file)
+    #[clap(
+        long = "subscriptions-file",
+        short = 's',
+        value_name = "FILE",
+        env = "GOBBLER_SUBSCRIPTIONS_FILE",
+        global = true
+    )]
+    subscriptions_file: Option<String>,
+
+    /// Exports the current subscriptions to 'subscriptions.db' in the current directory
+    #[clap(long = "export", short = 'e')]
+    export: bool,
+
+    /// Imports the subscriptions listed in FILE
+    #[clap(long = "import", short = 'i', value_name = "FILE")]
+    import: Option<String>,
+
+    /// List RSS feed subscriptions
+    #[clap(long = "list", short = 'l')]
+    list: bool,
+
+    /// Get the time the tool was last used
+    #[clap(long = "last-ran-at")]
+    last_ran_at: bool,
+
+    /// Hide feeds with no items
+    #[clap(long = "hide-empty-feeds", short = 'H')]
+    hide_empty_feeds: bool,
+
+    /// Show posts from the last NUM weeks
+    #[clap(long = "weeks", short = 'w', value_name = "NUM", default_value = "4")]
+    weeks: i64,
+
+    /// Show new feed items every NUM days
+    #[clap(
+        long = "run-days",
+        short = 'r',
+        value_name = "NUM",
+        min_values = 0,
+        require_equals = true,
+        default_missing_value = "1"
+    )]
+    run_days: Option<Option<i64>>,
+
+    /// Only show feed items from feeds whose name includes NAME
+    #[clap(long = "filter-name", short = 'n', value_name = "NAME")]
+    filter_by_name: Option<String>,
+
+    #[clap(subcommand)]
+    command: Option<Commands>,
+}
+
+#[derive(Subcommand)]
+enum Commands {
+    /// Add a RSS feed subscription
+    Add {
+        /// The name of the blog
+        #[clap(value_name = "NAME")]
+        name: String,
+
+        /// The url of the blog's RSS feed
+        #[clap(value_name = "URL")]
+        url: String,
+    },
+
+    /// Remove a RSS feed subscription
+    Remove {
+        /// The name of the blog
+        #[clap(value_name = "NAME")]
+        name: String,
+    },
+}
 
 fn main() {
     match run() {
@@ -27,9 +103,9 @@ fn main() {
 }
 
 fn run() -> Result<()> {
-    let matches = build_app().get_matches();
+    let options = Options::parse();
 
-    if matches.is_present("export") {
+    if options.export {
         println!("Exporting subscriptions to {DB_FILE}");
         let subscriptions_file = Database::get_subscriptions_db_file()?;
         std::fs::copy(subscriptions_file, DB_FILE)?;
@@ -37,29 +113,27 @@ fn run() -> Result<()> {
         return Ok(());
     }
 
-    if let Some(import_file) = matches.value_of("import") {
+    if let Some(import_file) = options.import {
         println!("Importing subscriptions from {DB_FILE}");
-        Database::import_from(import_file)?;
+        Database::import_from(&import_file)?;
         println!("Import successful");
         return Ok(());
     }
 
-    let mut db = if let Some(subscriptions_file) = matches.value_of("subscriptions-file") {
-        Database::from_file(PathBuf::from_str(subscriptions_file)?)?
+    let mut db = if let Some(subscriptions_file) = options.subscriptions_file {
+        Database::from_file(PathBuf::from_str(&subscriptions_file)?)?
     } else {
         Database::new()?
     };
     let mut stdout = StandardStream::stdout(ColorChoice::Auto);
 
-    match matches.subcommand() {
-        Some(("add", add_matches)) => {
-            let name = add_matches.value_of("name").unwrap();
-            let url = add_matches.value_of("url").unwrap();
-            if valid_rss_feed_url(url).is_err() {
-                return Err(Error::InvalidRssFeedUrl(url.to_string()));
+    match options.command {
+        Some(Commands::Add { name, url }) => {
+            if valid_rss_feed_url(&url).is_err() {
+                return Err(Error::InvalidRssFeedUrl(url));
             }
 
-            db.add(name.to_string(), url.to_string())?;
+            db.add(name.clone(), url.clone())?;
 
             writeln!(
                 &mut stdout,
@@ -67,9 +141,8 @@ fn run() -> Result<()> {
                 name, url,
             )?;
         }
-        Some(("remove", remove_matches)) => {
-            let name = remove_matches.value_of("name").unwrap();
-            match db.remove(name)? {
+        Some(Commands::Remove { name }) => {
+            match db.remove(&name)? {
                 Some(_) => writeln!(
                     &mut stdout,
                     "Succesfully removed '{}' from your list of subscriptions", 
@@ -82,10 +155,10 @@ fn run() -> Result<()> {
                 )?,
             }
         }
-        _ => {
-            if matches.is_present("list") {
+        None => {
+            if options.list {
                 db.print_subscriptions(&mut stdout)?;
-            } else if matches.is_present("last-ran-at") {
+            } else if options.last_ran_at {
                 let last_ran_at = get_last_ran_at()?;
                 writeln!(
                     &mut stdout,
@@ -93,10 +166,10 @@ fn run() -> Result<()> {
                     last_ran_at.format("%c")
                 )?;
             } else {
-                let use_ran_today = matches.occurrences_of("run-days") > 0;
+                let use_ran_today = options.run_days.is_some();
 
-                if use_ran_today {
-                    let run_days = i64::from_str(matches.value_of("run-days").unwrap())?;
+                if let Some(run_days) = options.run_days {
+                    let run_days = run_days.unwrap();
                     if ran_in_past_n_days(run_days)? {
                         return Ok(());
                     }
@@ -105,11 +178,9 @@ fn run() -> Result<()> {
                 for feed in db
                     .collect_feeds_with_items_since(
                         &SyndicationClient::new()?,
-                        Utc::now().sub(Duration::weeks(i64::from_str(
-                            matches.value_of("weeks").unwrap(),
-                        )?)),
-                        matches.is_present("hide-empty-feeds"),
-                        matches.value_of("filter-by-name"),
+                        Utc::now().sub(Duration::weeks(options.weeks)),
+                        options.hide_empty_feeds,
+                        options.filter_by_name,
                     )
                     .iter()
                 {

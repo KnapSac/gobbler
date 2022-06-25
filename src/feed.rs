@@ -132,7 +132,7 @@ impl Database {
         client: &SyndicationClient,
         since: DateTime<Utc>,
         skip_empty_feeds: bool,
-        filter_name: Option<&str>,
+        filter_name: Option<String>,
     ) -> Vec<Feed> {
         let lowered_filter_name = filter_name.map(|filter_name| filter_name.to_lowercase());
 
