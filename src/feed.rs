@@ -266,7 +266,7 @@ impl Feed {
     }
 
     /// Writes the feed to the given [`StandardStream`].
-    pub(crate) fn print_colored(&self, stdout: &mut StandardStream) -> Result<()> {
+    pub(crate) fn print_colored(&self, stdout: &mut StandardStream, limit: usize) -> Result<()> {
         stdout.set_color(ColorSpec::new().set_bold(true).set_fg(Some(Color::Green)))?;
         writeln!(stdout, "{}:", self.name)?;
         stdout.reset()?;
@@ -276,6 +276,7 @@ impl Feed {
             return Ok(());
         }
 
+        let mut idx = 0;
         let mut blue = ColorSpec::new();
         let blue = blue.set_fg(Some(Color::Blue));
         let mut yellow = ColorSpec::new();
@@ -290,6 +291,11 @@ impl Feed {
             stdout.set_color(yellow)?;
             writeln!(stdout, " ({})", item.id)?;
             stdout.reset()?;
+
+            idx += 1;
+            if idx == limit {
+                break;
+            }
         }
 
         Ok(())
