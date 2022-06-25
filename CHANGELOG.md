@@ -4,6 +4,10 @@ All notable changes to this project will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
+### Added
+- Add `--limit` to limit number of posts per feed
+- Add `--count-only` to only show number of posts per feed
+
 ### Changed
 - Switch to using `clap` derive macro by @KnapSac in https://github.com/KnapSac/gobbler/pull/14
 

@@ -266,16 +266,38 @@ impl Feed {
     }
 
     /// Writes the feed to the given [`StandardStream`].
-    pub(crate) fn print_colored(&self, stdout: &mut StandardStream) -> Result<()> {
+    pub(crate) fn print_colored(
+        &self,
+        stdout: &mut StandardStream,
+        weeks: i64,
+        limit: usize,
+        count_only: bool,
+    ) -> Result<()> {
         stdout.set_color(ColorSpec::new().set_bold(true).set_fg(Some(Color::Green)))?;
         writeln!(stdout, "{}:", self.name)?;
         stdout.reset()?;
 
         if self.items.is_empty() {
-            writeln!(stdout, "    No new posts in the last 4 weeks")?;
+            writeln!(
+                stdout,
+                "    No new posts in the last {}",
+                get_weeks_message(weeks)
+            )?;
             return Ok(());
         }
 
+        if count_only {
+            writeln!(
+                stdout,
+                "    {} post{} in the last {}",
+                self.items.len(),
+                plural_postfix(self.items.len()),
+                get_weeks_message(weeks)
+            )?;
+            return Ok(());
+        }
+
+        let mut idx = 0;
         let mut blue = ColorSpec::new();
         let blue = blue.set_fg(Some(Color::Blue));
         let mut yellow = ColorSpec::new();
@@ -290,9 +312,30 @@ impl Feed {
             stdout.set_color(yellow)?;
             writeln!(stdout, " ({})", item.id)?;
             stdout.reset()?;
+
+            idx += 1;
+            if idx == limit {
+                break;
+            }
         }
 
         Ok(())
+    }
+}
+
+fn plural_postfix(num: usize) -> &'static str {
+    if num == 1 {
+        ""
+    } else {
+        "s"
+    }
+}
+
+fn get_weeks_message(weeks: i64) -> String {
+    if weeks == 1 {
+        String::from("week")
+    } else {
+        format!("{} weeks", weeks)
     }
 }
 

@@ -67,6 +67,19 @@ struct Options {
     #[clap(long = "filter-name", short = 'n', value_name = "NAME")]
     filter_by_name: Option<String>,
 
+    /// Show at most LIMIT posts per feed
+    #[clap(
+        long = "limit",
+        short = 'L',
+        value_name = "LIMIT",
+        default_value = "10"
+    )]
+    posts_limit: usize,
+
+    /// Only show number of posts per feed
+    #[clap(long = "count-only", short = 'c')]
+    count_only: bool,
+
     #[clap(subcommand)]
     command: Option<Commands>,
 }
@@ -184,7 +197,12 @@ fn run() -> Result<()> {
                     )
                     .iter()
                 {
-                    feed.print_colored(&mut stdout)?;
+                    feed.print_colored(
+                        &mut stdout,
+                        options.weeks,
+                        options.posts_limit, 
+                        options.count_only
+                    )?;
                 }
 
                 if use_ran_today {
