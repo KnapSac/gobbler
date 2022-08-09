@@ -230,8 +230,8 @@ fn get_items_from_feed(
     (name, url): (&String, &String),
     since: DateTime<Utc>,
 ) -> Result<Feed> {
-    let uri = Uri::CreateUri(HSTRING::from(url))?;
-    let feed = client.RetrieveFeedAsync(uri)?.get()?;
+    let uri = Uri::CreateUri(&HSTRING::from(url))?;
+    let feed = client.RetrieveFeedAsync(&uri)?.get()?;
 
     let format = feed.SourceFormat()?;
     if format != SyndicationFormat::Atom10 && format != SyndicationFormat::Rss20 {
@@ -355,7 +355,7 @@ impl TryFrom<(SyndicationItem, SyndicationFormat)> for FeedItem {
     fn try_from((item, format): (SyndicationItem, SyndicationFormat)) -> Result<Self> {
         let xml = item.GetXmlDocument(format)?;
         let timestamp = xml
-            .GetElementsByTagName(HSTRING::from("updated"))?
+            .GetElementsByTagName(&HSTRING::from("updated"))?
             .First()?
             .next()
             .unwrap()
@@ -365,7 +365,7 @@ impl TryFrom<(SyndicationItem, SyndicationFormat)> for FeedItem {
         let mut id = item.Id()?.to_string_lossy();
         if !is_valid_url(&id) {
             id = xml
-                .GetElementsByTagName(HSTRING::from("link"))?
+                .GetElementsByTagName(&HSTRING::from("link"))?
                 .First()?
                 .next()
                 .unwrap()
