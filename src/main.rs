@@ -188,6 +188,7 @@ fn run() -> Result<()> {
                     }
                 }
 
+                let mut found_items = false;
                 for feed in db
                     .collect_feeds_with_items_since(
                         &SyndicationClient::new()?,
@@ -203,9 +204,14 @@ fn run() -> Result<()> {
                         options.posts_limit, 
                         options.count_only
                     )?;
+
+                    found_items = true;
                 }
 
-                if use_ran_today {
+                // Only save whether we ran today if it's applicable AND we have found items. This
+                // last condition handles running the program while not connected to the internet,
+                // in which case no posts will be found.
+                if use_ran_today && !found_items {
                     set_ran_today()?;
                 }
             }
