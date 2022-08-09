@@ -223,9 +223,9 @@ fn run() -> Result<()> {
 
 /// Check whether `url` is a valid RSS feed url.
 fn valid_rss_feed_url(url: &str) -> Result<()> {
-    let uri = Uri::CreateUri(HSTRING::from(url))?;
+    let uri = Uri::CreateUri(&HSTRING::from(url))?;
     let client = SyndicationClient::new()?;
-    let feed = client.RetrieveFeedAsync(uri)?.get()?;
+    let feed = client.RetrieveFeedAsync(&uri)?.get()?;
 
     if feed.Items()?.into_iter().next().is_some() {
         return Ok(());
