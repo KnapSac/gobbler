@@ -9,7 +9,7 @@ use crate::{
     feed::{Database, DB_FILE},
     reg::*,
 };
-use chrono::{Duration, Utc};
+use chrono::{Duration, Utc, DateTime, Local};
 use clap::{Parser, Subcommand};
 use std::{io::Write, ops::Sub, path::PathBuf, process::exit, str::FromStr};
 use termcolor::{ColorChoice, StandardStream};
@@ -176,7 +176,7 @@ fn run() -> Result<()> {
             if options.list {
                 db.print_subscriptions(&mut stdout)?;
             } else if options.last_ran_at {
-                let last_ran_at = get_last_ran_at()?;
+                let last_ran_at: DateTime<Local> = DateTime::from(get_last_ran_at()?);
                 writeln!(
                     &mut stdout,
                     "Gobbler last ran at {}",

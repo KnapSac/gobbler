@@ -11,19 +11,15 @@ const REG_VAL_NAME: &str = "LastRanAt";
 
 /// Check if `gobbler` listed feed items in the past `n` days.
 pub(crate) fn ran_in_past_n_days(n: i64) -> Result<bool> {
-    let last_ran = get_last_ran_at()?;
-    let ran_before = Utc::now().date().and_hms(0, 0, 0).sub(Duration::days(n));
+    let last_ran = get_last_ran_at()?.date();
+    let ran_before = Utc::now().sub(Duration::days(n)).date();
 
     Ok(last_ran > ran_before)
 }
 
 /// Stores that `gobbler` listed feed items today.
 pub(crate) fn set_ran_today() -> Result<()> {
-    get_gobbler_registry_key()?.set_value(
-        REG_VAL_NAME,
-        &(Utc::now().date().and_hms(0, 0, 0).timestamp() as u64),
-    )?;
-
+    get_gobbler_registry_key()?.set_value(REG_VAL_NAME, &(Utc::now().timestamp() as u64))?;
     Ok(())
 }
 
