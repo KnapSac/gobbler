@@ -5,6 +5,17 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.6.0] - 2022010-05
+### Added
+- Offline support for `--run-days` by @KnapSac in https://github.com/KnapSac/gobbler/pull/16
+- Update dependencies by @KnapSac in https://github.com/KnapSac/gobbler/pull/17
+
+### Fixed
+- Fix detecting offline mode
+
+### Changed
+- Simplify code after upgrade to latest windows-rs
+
 ## [0.5.0] - 2022-06-25
 ### Added
 - Add `--limit` to limit number of posts per feed by @KnapSac in https://github.com/KnapSac/gobbler/pull/15
@@ -41,7 +52,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Support for listing the items in a RSS feed in the last specified number of weeks.
 - Support using `gobbler` in a shell profile.
 
-[Unreleased]: https://github.com/KnapSac/gobbler/compare/v0.5.0...HEAD
+[Unreleased]: https://github.com/KnapSac/gobbler/compare/v0.6.0...HEAD
+[0.5.0]: https://github.com/KnapSac/gobbler/compare/v0.5.0...v0.6.0
 [0.5.0]: https://github.com/KnapSac/gobbler/compare/v0.4.0...v0.5.0
 [0.4.0]: https://github.com/KnapSac/gobbler/compare/v0.3.0...v0.4.0
 [0.3.0]: https://github.com/KnapSac/gobbler/compare/v0.2.1...v0.3.0
