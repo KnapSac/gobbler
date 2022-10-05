@@ -190,7 +190,7 @@ fn get_feeds_from_subscriptions_file(file: &Path) -> Result<BTreeMap<String, Str
         .read(true)
         .write(true)
         .create(true)
-        .open(&file)?;
+        .open(file)?;
 
     let mut feeds = BTreeMap::new();
     let reader = BufReader::new(file);
