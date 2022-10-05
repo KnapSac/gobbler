@@ -211,7 +211,7 @@ fn run() -> Result<()> {
                 // Only save whether we ran today if it's applicable AND we have found items. This
                 // last condition handles running the program while not connected to the internet,
                 // in which case no posts will be found.
-                if use_ran_today && !found_items {
+                if use_ran_today && found_items {
                     set_ran_today()?;
                 }
             }
