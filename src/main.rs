@@ -9,7 +9,7 @@ use crate::{
     feed::{Database, DB_FILE},
     reg::*,
 };
-use chrono::{Duration, Utc};
+use chrono::{Duration, Utc, DateTime, Local};
 use clap::{Parser, Subcommand};
 use std::{io::Write, ops::Sub, path::PathBuf, process::exit, str::FromStr};
 use termcolor::{ColorChoice, StandardStream};
@@ -51,6 +51,10 @@ struct Options {
     /// Show posts from the last NUM weeks
     #[clap(long = "weeks", short = 'w', value_name = "NUM", default_value = "4")]
     weeks: i64,
+
+    /// Only show posts which are new since gobbler was last ran
+    #[clap(long = "new-only", short = 'N', conflicts_with_all = &["weeks", "run-days"])]
+    new_only: bool,
 
     /// Show new feed items every NUM days
     #[clap(
@@ -172,7 +176,7 @@ fn run() -> Result<()> {
             if options.list {
                 db.print_subscriptions(&mut stdout)?;
             } else if options.last_ran_at {
-                let last_ran_at = get_last_ran_at()?;
+                let last_ran_at: DateTime<Local> = DateTime::from(get_last_ran_at()?);
                 writeln!(
                     &mut stdout,
                     "Gobbler last ran at {}",
@@ -189,10 +193,17 @@ fn run() -> Result<()> {
                 }
 
                 let mut found_items = false;
+                let since = if options.new_only {
+                    // Only show new posts
+                    get_last_ran_at()?
+                } else {
+                    Utc::now().sub(Duration::weeks(options.weeks))
+                };
+
                 for feed in db
                     .collect_feeds_with_items_since(
                         &SyndicationClient::new()?,
-                        Utc::now().sub(Duration::weeks(options.weeks)),
+                        since,
                         options.hide_empty_feeds,
                         options.filter_by_name,
                     )
