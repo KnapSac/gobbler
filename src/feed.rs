@@ -9,7 +9,6 @@ use std::{
     fs::{self, OpenOptions},
     io::{BufRead, BufReader, Write},
     path::{Path, PathBuf},
-    slice,
     str::FromStr,
 };
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
@@ -17,7 +16,7 @@ use windows::{
     core::HSTRING,
     Foundation::Uri,
     Web::Syndication::{SyndicationClient, SyndicationFormat, SyndicationItem},
-    Win32::UI::Shell::{FOLDERID_RoamingAppData, SHGetKnownFolderPath},
+    Win32::UI::Shell::{FOLDERID_RoamingAppData, SHGetKnownFolderPath, KNOWN_FOLDER_FLAG},
 };
 
 /// The file used to store subscriptions.
@@ -162,22 +161,17 @@ impl Database {
 
     /// Get the path to the feed subscriptions file.
     pub(crate) fn get_subscriptions_db_file() -> Result<PathBuf> {
-        // Future improvements may be possible, see https://github.com/microsoft/windows-rs/issues/595
         unsafe {
-            let path = SHGetKnownFolderPath(&FOLDERID_RoamingAppData as *const _, 0, None)?;
+            let path = SHGetKnownFolderPath(
+                &FOLDERID_RoamingAppData as *const _,
+                KNOWN_FOLDER_FLAG(0),
+                None,
+            )?;
             if path.is_null() {
                 return Err(Error::AppDataRoamingDirNotFound);
             }
 
-            let mut end = path.0;
-            while *end != 0 {
-                end = end.add(1);
-            }
-
-            let result =
-                String::from_utf16(slice::from_raw_parts(path.0, end.offset_from(path.0) as _))?;
-
-            let mut path = PathBuf::from_str(&result)?;
+            let mut path = PathBuf::from_str(&path.to_string()?)?;
             path.push("gobbler");
 
             // Ensure the path exists
