@@ -12,10 +12,10 @@ clap = { version = "4.3.12", features = ["cargo", "derive", "env"] }
 rayon = "1.7.0"
 termcolor = "1.2.0"
 thiserror = "1.0.43"
-winreg = { version = "0.10.1", features = ["chrono"] }
+winreg = { version = "0.50.0", features = ["chrono"] }
 
 [dependencies.windows]
-version = "0.42.0"
+version = "0.48.0"
 features = [
     "Data_Xml_Dom",
     "Foundation",
