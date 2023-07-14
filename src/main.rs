@@ -53,7 +53,7 @@ struct Options {
     weeks: i64,
 
     /// Only show posts which are new since gobbler was last ran
-    #[clap(long = "new-only", short = 'N', conflicts_with_all = &["weeks", "run-days"])]
+    #[clap(long = "new-only", short = 'N', conflicts_with_all = &["weeks", "run_days"])]
     new_only: bool,
 
     /// Show new feed items every NUM days
@@ -61,7 +61,6 @@ struct Options {
         long = "run-days",
         short = 'r',
         value_name = "NUM",
-        min_values = 0,
         require_equals = true,
         default_missing_value = "1"
     )]
