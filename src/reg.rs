@@ -11,8 +11,8 @@ const REG_VAL_NAME: &str = "LastRanAt";
 
 /// Check if `gobbler` listed feed items in the past `n` days.
 pub(crate) fn ran_in_past_n_days(n: i64) -> Result<bool> {
-    let last_ran = get_last_ran_at()?.date();
-    let ran_before = Utc::now().sub(Duration::days(n)).date();
+    let last_ran = get_last_ran_at()?.date_naive();
+    let ran_before = Utc::now().sub(Duration::days(n)).date_naive();
 
     Ok(last_ran > ran_before)
 }
@@ -33,7 +33,7 @@ pub(crate) fn get_last_ran_at() -> Result<DateTime<Utc>> {
             io::ErrorKind::NotFound => {
                 key.set_value(
                     "LastRanAt",
-                    &(NaiveDateTime::from_timestamp(0, 0).timestamp() as u64),
+                    &(NaiveDateTime::from_timestamp_opt(0, 0).unwrap().timestamp() as u64),
                 )?;
                 key.get_value(REG_VAL_NAME)
             }
@@ -42,7 +42,7 @@ pub(crate) fn get_last_ran_at() -> Result<DateTime<Utc>> {
     }?;
 
     Ok(DateTime::<Utc>::from_utc(
-        NaiveDateTime::from_timestamp(last_ran as i64, 0),
+        NaiveDateTime::from_timestamp_opt(last_ran as i64, 0).unwrap(),
         Utc,
     ))
 }
