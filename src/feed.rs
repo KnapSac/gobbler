@@ -2,6 +2,7 @@
 
 use crate::error::*;
 use chrono::{DateTime, FixedOffset, Utc};
+use indicatif::ParallelProgressIterator;
 use rayon::prelude::*;
 use std::{
     collections::{btree_map::Entry, BTreeMap},
@@ -138,6 +139,7 @@ impl Database {
 
         self.feeds
             .par_iter()
+            .progress_count(self.feeds.len() as u64)
             .filter_map(|(name, url)| {
                 if let Some(lowered_filter_name) = &lowered_filter_name {
                     let lowered_name = name.to_lowercase();
