@@ -36,4 +36,7 @@ pub(crate) enum Error {
 
     #[error("Application data roaming directory not found")]
     AppDataRoamingDirNotFound,
+
+    #[error("Failed to parse url")]
+    FailedToParseUrl(#[from] url::ParseError),
 }

@@ -12,6 +12,7 @@ use std::{
     str::FromStr,
 };
 use termcolor::{Color, ColorSpec, StandardStream, WriteColor};
+use url::Url;
 use windows::{
     core::HSTRING,
     Foundation::Uri,
@@ -242,21 +243,41 @@ fn get_items_from_feed(
         results.push(post);
     }
 
-    Ok(Feed::new(name.clone(), results))
+    Ok(Feed::new(name.clone(), url.clone(), results)?)
 }
 
 /// A RSS feed
 pub(crate) struct Feed {
     /// The name of the feed
     name: String,
+
+    /// The base url of the feed
+    base_url: Url,
+
     /// The items in the feed
     items: Vec<FeedItem>,
 }
 
 impl Feed {
     /// Create a new [`Feed`] instance with the given name and items.
-    fn new(name: String, items: Vec<FeedItem>) -> Self {
-        Self { name, items }
+    fn new(name: String, url: String, items: Vec<FeedItem>) -> Result<Self> {
+        // Remove any path and query segments from the url, leaving the base url.
+        let mut url = Url::parse(&url)?;
+        match url.path_segments_mut() {
+            Ok(mut path) => {
+                path.clear();
+            }
+            Err(_) => {
+                unreachable!("validity of feed url is check when adding it")
+            }
+        }
+        url.set_query(None);
+
+        Ok(Self {
+            name,
+            base_url: url,
+            items,
+        })
     }
 
     /// Writes the feed to the given [`StandardStream`].
@@ -304,7 +325,14 @@ impl Feed {
             write!(stdout, " - {}", item.title)?;
 
             stdout.set_color(yellow)?;
-            writeln!(stdout, " ({})", item.id)?;
+
+            // If the post url is relative, prepend the base url to make it absolute.
+            let post_url = match Url::parse(&item.id) {
+                Ok(post_url) if post_url.has_host() => post_url,
+                Ok(_) | Err(_) => self.base_url.join(&item.id)?,
+            };
+
+            writeln!(stdout, " ({})", post_url.to_string())?;
             stdout.reset()?;
 
             idx += 1;
