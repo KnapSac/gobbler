@@ -41,7 +41,7 @@ pub(crate) fn get_last_ran_at() -> Result<DateTime<Utc>> {
         },
     }?;
 
-    Ok(DateTime::<Utc>::from_utc(
+    Ok(DateTime::from_naive_utc_and_offset(
         NaiveDateTime::from_timestamp_opt(last_ran as i64, 0).unwrap(),
         Utc,
     ))
