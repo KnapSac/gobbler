@@ -334,7 +334,7 @@ impl Feed {
                 Ok(_) | Err(_) => self.base_url.join(&item.id)?,
             };
 
-            writeln!(stdout, " ({})", post_url.to_string())?;
+            writeln!(stdout, " {}", post_url.to_string())?;
             stdout.reset()?;
 
             idx += 1;
