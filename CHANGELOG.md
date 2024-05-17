@@ -6,6 +6,12 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 
 ## [Unreleased]
 
+## [0.7.1] - 2024-05-17
+
+### Fixed
+
+- Remove parens surrounding url in output by @KnapSac in https://github.com/KnapSac/gobbler/pull/22
+
 ## [0.7.0] - 2024-01-20
 
 ### Added
@@ -84,7 +90,8 @@ The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/).
 - Support for listing the items in a RSS feed in the last specified number of weeks.
 - Support using `gobbler` in a shell profile.
 
-[Unreleased]: https://github.com/KnapSac/gobbler/compare/v0.7.0...HEAD
+[Unreleased]: https://github.com/KnapSac/gobbler/compare/v0.7.1...HEAD
+[0.7.1]: https://github.com/KnapSac/gobbler/compare/v0.7.0...v0.7.1
 [0.7.0]: https://github.com/KnapSac/gobbler/compare/v0.6.1...v0.7.0
 [0.6.1]: https://github.com/KnapSac/gobbler/compare/v0.6.0...v0.6.1
 [0.6.0]: https://github.com/KnapSac/gobbler/compare/v0.5.0...v0.6.0
