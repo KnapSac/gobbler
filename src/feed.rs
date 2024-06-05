@@ -378,13 +378,24 @@ impl TryFrom<(SyndicationItem, SyndicationFormat)> for FeedItem {
 
     fn try_from((item, format): (SyndicationItem, SyndicationFormat)) -> Result<Self> {
         let xml = item.GetXmlDocument(format)?;
-        let timestamp = xml
+
+        let timestamp_elem = xml
             .GetElementsByTagName(&HSTRING::from("updated"))?
             .First()?
             .next()
-            .unwrap()
-            .InnerText()?
-            .to_string_lossy();
+            .or_else(|| {
+                xml.GetElementsByTagName(&HSTRING::from("pubDate"))
+                    .ok()?
+                    .First()
+                    .ok()?
+                    .next()
+            });
+
+        let timestamp = if let Some(timestamp_elem) = timestamp_elem {
+            DateTime::parse_from_rfc3339(&timestamp_elem.InnerText()?.to_string_lossy())?
+        } else {
+            DateTime::default()
+        };
 
         let mut id = item.Id()?.to_string_lossy();
         if !is_valid_url(&id) {
@@ -400,7 +411,7 @@ impl TryFrom<(SyndicationItem, SyndicationFormat)> for FeedItem {
         Ok(Self {
             title: item.Title()?.Text()?.to_string_lossy(),
             id,
-            timestamp: DateTime::parse_from_rfc3339(&timestamp)?,
+            timestamp,
         })
     }
 }
